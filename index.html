@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI DETECTIVE — Find the Truth</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#090b0f;color:#eee;font:15px Arial,sans-serif}header{padding:25px 6%;border-bottom:1px solid #292d35;display:flex;justify-content:space-between}.logo{font-size:24px;font-weight:900;letter-spacing:4px}.logo span,h2,h3{color:#c99b4b}.status{color:#89919a;font-size:12px;letter-spacing:2px}main{max-width:1250px;margin:auto;padding:35px 5% 70px}.hero{text-align:center;margin-bottom:35px}.hero h1{font:900 clamp(40px,6vw,72px) Georgia;letter-spacing:6px;margin:0}.hero p{color:#949ca5;letter-spacing:2px}.grid{display:grid;grid-template-columns:1.15fr .85fr;gap:22px}.card{background:#11151b;border:1px solid #292e37;border-radius:16px;padding:24px;box-shadow:0 15px 50px #0005}.muted{color:#858d96}.drop{display:block;border:1px dashed #565d68;border-radius:13px;padding:35px;text-align:center;cursor:pointer}.drop:hover{border-color:#c99b4b}input{display:none}.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-top:18px}.thumb{position:relative;background:#0b0e12;border-radius:10px;overflow:hidden;border:1px solid #303641}.thumb img{width:100%;height:110px;object-fit:cover}.thumb small{display:block;padding:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.x{position:absolute;right:5px;top:5px;padding:4px 8px;border:0;border-radius:50%;background:#181b20;color:white;z-index:2}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}button{border:0;border-radius:9px;padding:13px 18px;background:#c99b4b;color:#111;font-weight:800;cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#252b34;color:#eee}textarea{width:100%;min-height:95px;background:#0b0e12;color:#eee;border:1px solid #343a44;border-radius:10px;padding:13px;font:inherit;resize:vertical}.progress{margin-top:15px;color:#c99b4b;min-height:20px}.result{margin-top:22px}.report{white-space:pre-wrap;line-height:1.7;background:#0b0e12;border:1px solid #252b33;border-radius:12px;padding:18px}.major{border:1px solid #8f6c2e;background:#211a0d;color:#e5bd67;padding:15px;border-radius:10px;margin-bottom:15px}.reko{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.reko div,.history-item{background:#151a21;padding:12px;border-radius:9px}.audio{width:100%}.history-item{border-left:3px solid #c99b4b;margin:10px 0}@media(max-width:850px){.grid{grid-template-columns:1fr}}
+</style></head>
+<body><header><div class="logo">AI <span>DETECTIVE</span></div><div class="status">CASE FILE SYSTEM • ONLINE</div></header>
+<main><section class="hero"><h1>FIND THE TRUTH</h1><p>Upload evidence. Question the evidence. Let the machines investigate.</p></section>
+<div class="grid"><section class="card"><h2>📁 Evidence Locker</h2><p class="muted">Upload up to 5 evidence images. All are investigated together.</p>
+<label class="drop" for="files">🕵️ Click to select evidence images<br><small>JPG / PNG • maximum 5</small></label><input id="files" type="file" accept="image/*" multiple><div id="thumbs" class="thumbs"></div>
+<div class="actions"><button id="investigate" disabled>🔎 INVESTIGATE EVIDENCE</button><button class="secondary" id="clear">CLEAR FILES</button></div><div id="progress" class="progress"></div></section>
+<section class="card"><h2>🧠 Ask the Detective</h2><p class="muted">Ask Gemini about the currently uploaded evidence.</p>
+<textarea id="question" placeholder="Example: What suspicious clues connect these photos?"></textarea>
+<div class="actions"><button id="ask" disabled>ASK AI</button><button id="solve" disabled>⚖️ SOLVE CASE</button></div></section></div>
+<section class="card result" id="resultCard" style="display:none"><h2>🗂 Investigation Report</h2><div id="major"></div><div id="report" class="report"></div>
+<h3>👁 Rekognition — Visual Second Opinion</h3><div id="reko" class="reko"></div><h3>🔊 Voice Report</h3><audio id="audio" class="audio" controls></audio>
+<h3>📜 Session Investigation History</h3><div id="history"></div></section></main>
+<script>
+const API="https://smhn791jba.execute-api.ap-south-1.amazonaws.com/investigate";
+let files=[],keys=[],history=[];
+const $=x=>document.getElementById(x),esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+$("files").onchange=e=>{let a=[...e.target.files].filter(f=>f.type.startsWith("image/"));if(files.length+a.length>5)return alert("Maximum 5 evidence images.");files.push(...a);render();update()};
+function render(){$("thumbs").innerHTML=files.map((f,i)=>'<div class="thumb"><button class="x" onclick="removeFile('+i+')">×</button><img src="'+URL.createObjectURL(f)+'"><small>'+esc(f.name)+'</small></div>').join("")}
+function removeFile(i){files.splice(i,1);keys=[];render();update()}
+$("clear").onclick=()=>{files=[];keys=[];$("files").value="";render();update();$("progress").textContent=""};
+function update(){let ok=files.length>0;$("investigate").disabled=!ok;$("ask").disabled=!keys.length;$("solve").disabled=!keys.length}
+async function post(body){let r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}),t=await r.text(),d;try{d=JSON.parse(t)}catch{throw Error(t)}if(!r.ok||d.success===false)throw Error(d.error||"Request failed");return d}
+async function uploadAll(){keys=[];for(let i=0;i<files.length;i++){let f=files[i];$("progress").textContent="Uploading evidence "+(i+1)+"/"+files.length+"...";let u=await post({action:"upload",file_name:f.name,content_type:f.type});let r=await fetch(u.upload_url,{method:"PUT",headers:{"Content-Type":f.type},body:f});if(!r.ok)throw Error("S3 upload failed");keys.push(u.key)}}
+async function startInvestigation(q){
+ if(!keys.length)await uploadAll();
+ $("progress").textContent="🚀 Investigation started. AI is working in the background...";
+ let d=await post({action:"start",case_id:"CASE-001",keys:keys,question:q});
+ await poll(d.case_id,d.investigation_id,q);
+}
+async function poll(caseId,id,q){
+ for(let i=0;i<40;i++){
+   await new Promise(r=>setTimeout(r,2500));
+   let d=await post({action:"status",case_id:caseId,investigation_id:id});
+   if(d.status==="COMPLETED"){show(d,q);$("progress").textContent="✅ Investigation complete.";return}
+   if(d.status==="FAILED")throw Error(d.error_message||"Investigation failed.");
+   $("progress").textContent="🧠 Investigation running... "+Math.min(95,Math.round((i+1)*2.5))+"%";
+ }
+ throw Error("Investigation is taking longer than expected. Check DynamoDB/CloudWatch.");
+}
+$("investigate").onclick=async()=>{try{await startInvestigation($("question").value.trim()||"What clues can you find in this evidence?")}catch(e){$("progress").textContent="❌ "+e.message}};
+$("ask").onclick=async()=>{let q=$("question").value.trim();if(!q)return alert("Enter a question first.");try{await startInvestigation(q)}catch(e){$("progress").textContent="❌ "+e.message}};
+$("solve").onclick=async()=>{let q="Solve this case using ALL uploaded evidence. Give WHO, WHERE, WHEN, WHAT HAPPENED, KEY CLUES, and UNCERTAINTIES. Do not invent facts.";try{await startInvestigation(q)}catch(e){$("progress").textContent="❌ "+e.message}};
+function show(d,q){$("resultCard").style.display="block";$("report").textContent=d.gemini_investigation||"No Gemini report returned.";$("major").innerHTML=d.major_clue?'<div class="major">🚨 <b>MAJOR CLUE DETECTED</b><br>'+esc(d.major_clue_reason||"Potentially important evidence found.")+"</div>":"";$("reko").innerHTML=(d.rekognition_results||[]).flatMap(x=>(x.labels||[]).slice(0,10).map(l=>'<div><b>'+esc(l.Name)+'</b><br><span class="muted">'+Number(l.Confidence).toFixed(1)+'% confidence</span></div>')).join("")||"<div>No labels returned.</div>";$("audio").src=d.audio_url||"";history.unshift({q:q,time:new Date().toLocaleTimeString(),id:d.investigation_id});$("history").innerHTML=history.map((h,i)=>'<div class="history-item"><b>#'+(history.length-i)+'</b> · '+esc(h.time)+'<br>'+esc(h.q)+'<br><span class="muted">'+esc(h.id)+'</span></div>').join("");update();$("resultCard").scrollIntoView({behavior:"smooth"})}
+</script></body></html>

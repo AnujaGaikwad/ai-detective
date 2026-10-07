@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI DETECTIVE | Find the Truth</title>
+<style>
+:root{
+  --bg:#090b10;
+  --panel:#11151d;
+  --panel2:#0d1118;
+  --line:#252c38;
+  --text:#f3efe6;
+  --muted:#9299a6;
+  --gold:#d6a85b;
+  --gold2:#f0c978;
+  --red:#e05252;
+  --green:#68c28a;
+  --shadow:0 20px 60px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  min-height:100vh;
+  color:var(--text);
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:
+    radial-gradient(circle at 15% 0%,rgba(214,168,91,.09),transparent 30%),
+    radial-gradient(circle at 90% 20%,rgba(93,115,160,.08),transparent 28%),
+    var(--bg);
+}
+body:before{
+  content:"";
+  position:fixed;inset:0;pointer-events:none;opacity:.035;
+  background-image:linear-gradient(rgba(255,255,255,.5) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(255,255,255,.5) 1px,transparent 1px);
+  background-size:38px 38px;
+}
+.app{max-width:1180px;margin:auto;padding:30px 20px 60px}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px}
+.brand{display:flex;align-items:center;gap:14px}
+.logo{
+  width:48px;height:48px;border:1px solid #4b3a20;border-radius:14px;
+  display:grid;place-items:center;font-size:25px;background:#15120d;
+  box-shadow:0 0 30px rgba(214,168,91,.08)
+}
+.brand h1{font-family:Georgia,serif;letter-spacing:.12em;font-size:23px;margin:0}
+.brand p{margin:4px 0 0;color:var(--muted);font-size:11px;letter-spacing:.18em;text-transform:uppercase}
+.case-badge{
+  border:1px solid var(--line);background:rgba(17,21,29,.8);padding:10px 15px;
+  border-radius:12px;text-align:right
+}
+.case-badge strong{display:block;color:var(--gold2);font-size:12px;letter-spacing:.15em}
+.case-badge span{font-family:Georgia,serif;color:#ddd5c5}
+.hero{
+  border:1px solid var(--line);border-radius:24px;padding:28px;
+  background:linear-gradient(145deg,rgba(22,26,35,.96),rgba(12,15,21,.96));
+  box-shadow:var(--shadow);margin-bottom:20px
+}
+.hero h2{font:600 38px Georgia,serif;margin:0 0 7px}
+.hero h2 span{color:var(--gold2)}
+.hero p{margin:0;color:var(--muted)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.card{
+  background:rgba(17,21,29,.92);border:1px solid var(--line);border-radius:20px;
+  padding:22px;box-shadow:0 12px 35px rgba(0,0,0,.18)
+}
+.card-title{
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;
+  font-size:12px;text-transform:uppercase;letter-spacing:.16em;color:#bbb4a8
+}
+.status{font-size:10px;color:var(--green);letter-spacing:.1em}
+.drop{
+  min-height:245px;border:1px dashed #4a505b;border-radius:16px;
+  display:flex;align-items:center;justify-content:center;text-align:center;
+  cursor:pointer;transition:.2s;background:rgba(7,9,13,.45);overflow:hidden;position:relative
+}
+.drop:hover,.drop.drag{border-color:var(--gold);background:rgba(214,168,91,.05)}
+.drop-content{padding:25px}
+.camera{font-size:38px;display:block;margin-bottom:9px}
+.drop strong{display:block;font-size:17px}
+.drop small{display:block;color:var(--muted);margin-top:7px}
+#preview{display:none;width:100%;height:245px;object-fit:contain;background:#07090d}
+input[type=file]{display:none}
+label{display:block;color:#aaa;font-size:11px;text-transform:uppercase;letter-spacing:.13em;margin:18px 0 8px}
+textarea{
+  width:100%;min-height:90px;resize:vertical;border:1px solid var(--line);
+  border-radius:12px;background:#0b0e14;color:var(--text);padding:13px;
+  font:14px inherit;outline:none
+}
+textarea:focus{border-color:#6d552f}
+button{
+  border:0;border-radius:12px;padding:13px 18px;font-weight:800;cursor:pointer;
+  font-size:12px;letter-spacing:.1em;transition:.18s
+}
+.primary{
+  width:100%;margin-top:14px;background:linear-gradient(135deg,var(--gold2),var(--gold));
+  color:#16120b;box-shadow:0 8px 25px rgba(214,168,91,.18)
+}
+.primary:hover{transform:translateY(-1px);filter:brightness(1.06)}
+.primary:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.secondary{background:#171c25;color:#eee;border:1px solid var(--line)}
+.report{grid-column:1/-1}
+.alert{
+  display:none;border:1px solid #6d2929;background:rgba(100,30,30,.16);
+  color:#ffb0b0;border-radius:13px;padding:13px 15px;margin-bottom:18px;
+  font-weight:800;font-size:13px
+}
+.report-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:18px}
+.section{background:#0c1016;border:1px solid var(--line);border-radius:14px;padding:17px;margin-bottom:12px}
+.section h3{font-size:11px;letter-spacing:.16em;text-transform:uppercase;margin:0 0 10px;color:var(--gold2)}
+.section p,.section pre{margin:0;color:#d2d5da;line-height:1.65;white-space:pre-wrap;font:14px/1.65 Inter,system-ui}
+.confidence{display:inline-flex;padding:6px 10px;border-radius:999px;background:rgba(104,194,138,.1);color:var(--green);font-weight:800;font-size:11px}
+.labels{display:flex;flex-wrap:wrap;gap:9px}
+.chip{border:1px solid #2c3440;border-radius:999px;padding:8px 10px;background:#11161f;font-size:11px}
+.chip b{color:var(--gold2);margin-left:5px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:15px}
+.hidden{display:none}
+.loading{display:none;margin-top:14px;color:var(--muted);font-size:12px;text-align:center}
+.spinner{
+  display:inline-block;width:13px;height:13px;border:2px solid #444;border-top-color:var(--gold2);
+  border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px;margin-right:6px
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.footer{text-align:center;color:#555d68;font-size:11px;margin-top:25px;letter-spacing:.08em}
+@media(max-width:800px){
+  .grid,.report-grid{grid-template-columns:1fr}
+  .report{grid-column:auto}.hero h2{font-size:30px}.topbar{align-items:flex-start}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">🕵️</div>
+      <div>
+        <h1>AI DETECTIVE</h1>
+        <p>Find the truth. Follow the evidence.</p>
+      </div>
+    </div>
+    <div class="case-badge">
+      <strong>CASE #001</strong>
+      <span>Active Investigation</span>
+    </div>
+  </header>
+
+  <section class="hero">
+    <h2>"Find the <span>Truth</span>"</h2>
+    <p>Upload evidence, interrogate the image, and let AI connect the clues.</p>
+  </section>
+
+  <main class="grid">
+
+    <section class="card">
+      <div class="card-title">
+        <span>Evidence Intake</span>
+        <span class="status">● SECURE</span>
+      </div>
+
+      <div class="drop" id="dropZone">
+        <div class="drop-content" id="dropContent">
+          <span class="camera">📷</span>
+          <strong>Drop Evidence</strong>
+          <small>Click to upload JPG, PNG, WEBP or GIF</small>
+        </div>
+        <img id="preview" alt="Evidence preview">
+      </div>
+      <input id="fileInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif">
+
+      <label for="question">Investigation Question</label>
+      <textarea id="question" placeholder="What clues can you find in this evidence?">What clues can you find in this evidence?</textarea>
+
+      <button class="primary" id="investigateBtn" disabled>🔍 INVESTIGATE</button>
+      <div class="loading" id="loading"><span class="spinner"></span>Examining evidence with Gemini + Rekognition + Polly...</div>
+    </section>
+
+    <section class="card">
+      <div class="card-title">
+        <span>Investigation Status</span>
+        <span id="statusText" class="status">● WAITING</span>
+      </div>
+      <div class="section">
+        <h3>Case File</h3>
+        <p id="caseInfo">No evidence submitted yet.<br>Upload an image to begin the investigation.</p>
+      </div>
+      <div class="section">
+        <h3>AI Method</h3>
+        <p><b>Gemini Flash</b> → multimodal reasoning<br>
+        <b>Amazon Rekognition</b> → visual detection<br>
+        <b>Amazon Polly</b> → voice report<br>
+        <b>Amazon DynamoDB</b> → case history</p>
+      </div>
+      <div class="section">
+        <h3>Detective Rule</h3>
+        <p>Facts are separated from inferences. AI is instructed not to invent evidence.</p>
+      </div>
+    </section>
+
+    <section class="card report hidden" id="reportCard">
+      <div class="card-title">
+        <span>AI Investigation</span>
+        <span class="status">● REPORT READY</span>
+      </div>
+
+      <div id="majorClue" class="alert">🚨 MAJOR CLUE DETECTED</div>
+
+      <div class="report-grid">
+        <div>
+          <div class="section">
+            <h3>Investigation Report</h3>
+            <pre id="geminiReport">Waiting for investigation...</pre>
+          </div>
+          <div class="actions">
+            <button class="secondary" id="playBtn">🔊 PLAY REPORT</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="section">
+            <h3>Rekognition</h3>
+            <div class="labels" id="labels"></div>
+          </div>
+          <div class="section">
+            <h3>Confidence</h3>
+            <span id="confidence" class="confidence">UNKNOWN</span>
+          </div>
+          <div class="section">
+            <h3>Case Record</h3>
+            <p id="recordInfo">Not saved yet.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <div class="footer">AI DETECTIVE • AWS + GEMINI • CASE FILE #001</div>
+</div>
+
+<script>
+const API_URL = "https://smhn791jba.execute-api.ap-south-1.amazonaws.com/investigate";
+
+const fileInput = document.getElementById("fileInput");
+const dropZone = document.getElementById("dropZone");
+const dropContent = document.getElementById("dropContent");
+const preview = document.getElementById("preview");
+const investigateBtn = document.getElementById("investigateBtn");
+const loading = document.getElementById("loading");
+const reportCard = document.getElementById("reportCard");
+const statusText = document.getElementById("statusText");
+
+let selectedFile = null;
+let audio = null;
+
+dropZone.addEventListener("click", () => fileInput.click());
+
+fileInput.addEventListener("change", e => {
+  if (e.target.files[0]) setFile(e.target.files[0]);
+});
+
+["dragenter","dragover"].forEach(evt => {
+  dropZone.addEventListener(evt, e => {
+    e.preventDefault();
+    dropZone.classList.add("drag");
+  });
+});
+
+["dragleave","drop"].forEach(evt => {
+  dropZone.addEventListener(evt, e => {
+    e.preventDefault();
+    dropZone.classList.remove("drag");
+  });
+});
+
+dropZone.addEventListener("drop", e => {
+  if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+});
+
+function setFile(file) {
+  if (!file.type.startsWith("image/")) {
+    alert("Please select an image file.");
+    return;
+  }
+
+  selectedFile = file;
+  preview.src = URL.createObjectURL(file);
+  preview.style.display = "block";
+  dropContent.style.display = "none";
+  investigateBtn.disabled = false;
+  statusText.textContent = "● EVIDENCE READY";
+  document.getElementById("caseInfo").innerHTML =
+    `<b>${escapeHtml(file.name)}</b><br>${(file.size/1024/1024).toFixed(2)} MB<br>Ready for investigation.`;
+}
+
+investigateBtn.addEventListener("click", investigate);
+
+async function investigate() {
+  if (!selectedFile) return;
+
+  investigateBtn.disabled = true;
+  loading.style.display = "block";
+  reportCard.classList.add("hidden");
+  statusText.textContent = "● INVESTIGATING";
+
+  try {
+    // Step 1: ask Lambda for a secure presigned S3 upload URL
+    const uploadRequest = await postJSON({
+      action: "upload",
+      filename: selectedFile.name,
+      content_type: selectedFile.type
+    });
+
+    if (!uploadRequest.success) {
+      throw new Error(uploadRequest.error || "Could not create upload URL.");
+    }
+
+    // Step 2: upload image directly to private S3
+    const uploadResponse = await fetch(uploadRequest.upload_url, {
+      method: "PUT",
+      headers: {"Content-Type": selectedFile.type},
+      body: selectedFile
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error("Evidence upload to S3 failed.");
+    }
+
+    // Step 3: ask Lambda to investigate the uploaded evidence
+    const result = await postJSON({
+      action: "investigate",
+      bucket: undefined,
+      key: uploadRequest.key,
+      case_id: "CASE-001",
+      question: document.getElementById("question").value.trim() ||
+                "What clues can you find in this evidence?"
+    });
+
+    if (!result.success) {
+      throw new Error(result.error || "Investigation failed.");
+    }
+
+    renderResult(result);
+    statusText.textContent = "● INVESTIGATION COMPLETE";
+  } catch (error) {
+    console.error(error);
+    statusText.textContent = "● ERROR";
+    alert("Investigation failed:\n\n" + error.message);
+  } finally {
+    investigateBtn.disabled = false;
+    loading.style.display = "none";
+  }
+}
+
+async function postJSON(payload) {
+  const cleanPayload = Object.fromEntries(
+    Object.entries(payload).filter(([_, value]) => value !== undefined)
+  );
+
+  const response = await fetch(API_URL, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(cleanPayload)
+  });
+
+  const text = await response.text();
+
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error("API returned an invalid response.");
+  }
+
+  if (!response.ok) {
+    throw new Error(data.error || "API request failed.");
+  }
+
+  return data;
+}
+
+function renderResult(result) {
+  reportCard.classList.remove("hidden");
+
+  const report = result.gemini_investigation || "No Gemini report returned.";
+  document.getElementById("geminiReport").textContent = report;
+
+  const labelsBox = document.getElementById("labels");
+  labelsBox.innerHTML = "";
+
+  (result.rekognition_labels || []).forEach(label => {
+    const chip = document.createElement("div");
+    chip.className = "chip";
+    chip.innerHTML = `${escapeHtml(label.name)} <b>${Number(label.confidence).toFixed(2)}%</b>`;
+    labelsBox.appendChild(chip);
+  });
+
+  if (!labelsBox.children.length) {
+    labelsBox.innerHTML = '<span style="color:#777">No visual labels returned.</span>';
+  }
+
+  const match = report.match(/CONFIDENCE\s*[\r\n:-]*\s*(LOW|MEDIUM|HIGH)/i);
+  document.getElementById("confidence").textContent =
+    match ? match[1].toUpperCase() : "SEE REPORT";
+
+  const clue = document.getElementById("majorClue");
+  clue.style.display = result.major_clue ? "block" : "none";
+
+  document.getElementById("recordInfo").innerHTML =
+    `<b>Case:</b> ${escapeHtml(result.case_id || "CASE-001")}<br>` +
+    `<b>Investigation:</b> ${escapeHtml(result.investigation_id || "Saved")}<br>` +
+    `<b>Evidence:</b> ${escapeHtml(result.evidence_key || "Uploaded")}<br>` +
+    `<b>Alert:</b> ${result.sns_alert_sent ? "Major clue alert sent" : "No alert sent"}`;
+
+  document.getElementById("caseInfo").innerHTML =
+    `<b>Investigation complete.</b><br>Evidence analyzed and case record saved to DynamoDB.`;
+
+  document.getElementById("playBtn").onclick = () => {
+    if (!result.audio_url) {
+      alert("No audio report was returned.");
+      return;
+    }
+    if (audio) audio.pause();
+    audio = new Audio(result.audio_url);
+    audio.play().catch(() => alert("Browser blocked audio playback. Click PLAY REPORT again."));
+  };
+
+  reportCard.scrollIntoView({behavior:"smooth", block:"start"});
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, char => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[char]));
+}
+</script>
+</body>
+</html>
